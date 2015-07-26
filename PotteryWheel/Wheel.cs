@@ -8,7 +8,7 @@ using SLPWM = SecretLabs.NETMF.Hardware.PWM;
 
 namespace PotteryWheel
 {
-    internal class Wheel
+    public class Wheel
     {
         private const uint MIN_DURATION = 0;
         private const uint MAX_DURATION = 43350; // 85% of 51 msec
@@ -27,14 +27,14 @@ namespace PotteryWheel
             _pedal = new AnalogInput(AnalogChannels.ANALOG_PIN_A0);
             _motorSpeed = new SLPWM(Pins.GPIO_PIN_D5);
 
-            var provider = new GpioLcdTransferProvider(
-                Pins.GPIO_PIN_D11, // RS
-                Pins.GPIO_PIN_D10, // Enable
+            var lcdProvider = new GpioLcdTransferProvider(
+                Pins.GPIO_PIN_D7, // RS
+                Pins.GPIO_PIN_D6, // Enable
                 Pins.GPIO_PIN_D3, // D4
                 Pins.GPIO_PIN_D2, // D5
                 Pins.GPIO_PIN_D1, // D6
                 Pins.GPIO_PIN_D0); // D7
-            _lcd = new Lcd(provider);
+            _lcd = new Lcd(lcdProvider);
             _lcd.Begin(16, 2);
         }
 
@@ -108,17 +108,17 @@ namespace PotteryWheel
             return _pedal.ReadRaw();
         }
 
-        private double GetNormalizedPedalPosition(int rawPos)
-        {
-            var normalized = rawPos/1024.0;
-            return normalized;
-        }
-
-        private double GetGammaPedalPosition(int rawPos)
+        private static double GetGammaPedalPosition(int rawPos)
         {
             var normalized = GetNormalizedPedalPosition(rawPos);
             var gammaAdjusted = Math.Pow(normalized, GAMMA_EXPONENT);
             return gammaAdjusted;
+        }
+
+        private static double GetNormalizedPedalPosition(int rawPos)
+        {
+            var normalized = rawPos/1024.0;
+            return normalized;
         }
     }
 }
