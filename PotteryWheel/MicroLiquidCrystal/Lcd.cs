@@ -2,7 +2,6 @@
 // http://microliquidcrystal.codeplex.com
 // Appache License Version 2.0 
 
-using System;
 using System.Text;
 using System.Threading;
 
@@ -16,18 +15,16 @@ namespace MicroLiquidCrystal
 
     public class Lcd
     {
-        private static readonly byte[] RowOffsets = new byte[] {0x00, 0x40, 0x14, 0x54};
+        private static readonly byte[] RowOffsets = {0x00, 0x40, 0x14, 0x54};
 
         private readonly ILcdTransferProvider _provider;
         private bool _showCursor;
         private bool _blinkCursor;
         private bool _visible = true;
-        private bool _autoScroll;
         private bool _backlight = true;
 
         private byte _numLines;
         private byte _numColumns;
-        private byte _currLine;
         private byte _displayFunction;
 
         #region LCD Flags
@@ -161,23 +158,6 @@ namespace MicroLiquidCrystal
             }
         }
 
-        /*       
-                /// <summary>
-                /// Turns on automatic scrolling of the LCD. This causes each character output to the display to push previous characters 
-                /// over by one space. If the current text direction is left-to-right (the default), the display scrolls to the left; 
-                /// if the current direction is right-to-left, the display scrolls to the right. 
-                /// This has the effect of outputting each new character to the same location on the LCD. 
-                /// </summary>
-                public bool AutoScroll
-                {
-                    get { return _autoScroll; }
-                    set
-                    {
-                        _autoScroll = value;
-                        //TODO:
-                    }
-                }*/
-
         /// <summary>
         /// Get or set the encoding used to map the string into bytes codes that are sent LCD. 
         /// UTF8 is used by default.
@@ -200,7 +180,6 @@ namespace MicroLiquidCrystal
             {
                 _displayFunction |= LCD_2LINE;
             }
-            _currLine = 0;
             _numLines = lines;
             _numColumns = columns;
 
