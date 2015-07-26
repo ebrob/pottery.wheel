@@ -1,5 +1,6 @@
 using System.Threading;
-using Microsoft.SPOT;
+using MicroLiquidCrystal;
+using MicroLiquidCrystal.MicroLiquidCrystal;
 using Microsoft.SPOT.Hardware;
 using SecretLabs.NETMF.Hardware.Netduino;
 using Math = System.Math;
@@ -18,12 +19,23 @@ namespace PotteryWheel
         private readonly OutputPort _led;
         private readonly AnalogInput _pedal;
         private readonly SLPWM _motorSpeed;
+        private readonly Lcd _lcd;
 
         public Wheel()
         {
             _led = new OutputPort(Pins.ONBOARD_LED, false);
             _pedal = new AnalogInput(AnalogChannels.ANALOG_PIN_A0);
             _motorSpeed = new SLPWM(Pins.GPIO_PIN_D5);
+
+            var provider = new GpioLcdTransferProvider(
+                Pins.GPIO_PIN_D11, // RS
+                Pins.GPIO_PIN_D10, // Enable
+                Pins.GPIO_PIN_D3, // D4
+                Pins.GPIO_PIN_D2, // D5
+                Pins.GPIO_PIN_D1, // D6
+                Pins.GPIO_PIN_D0); // D7
+            _lcd = new Lcd(provider);
+            _lcd.Begin(16, 2);
         }
 
         public void WarmUp(int seconds = 4)
@@ -40,9 +52,16 @@ namespace PotteryWheel
 
         public void WaitForPedalInZeroPosition()
         {
+            _lcd.Clear();
+            _lcd.Home();
+            _lcd.Write("Put pedal in");
+            _lcd.SetCursorPosition(0, 1);
+            _lcd.Write("zero position");
+
             while (true)
             {
-                var pedalPosition = GetNormalizedPedalPosition();
+                var rawPosition = GetRawPedalPosition();
+                var pedalPosition = GetNormalizedPedalPosition(rawPosition);
                 if (pedalPosition < 0.01)
                     return;
 
@@ -65,26 +84,39 @@ namespace PotteryWheel
 
             while (true)
             {
-                var pedalPosition = GetGammaPedalPosition();
+                var rawPosition = GetRawPedalPosition();
+                var pedalPosition = GetGammaPedalPosition(rawPosition);
                 var targetDuration = (uint) (pedalPosition*RANGE_DURATION) + MIN_DURATION;
                 if (duration != targetDuration)
                 {
                     duration = targetDuration;
                     _motorSpeed.SetPulse(PWM_PERIOD, duration);
+
+                    _lcd.Clear();
+                    _lcd.Home();
+                    _lcd.Write("Raw = " + rawPosition);
+                    _lcd.SetCursorPosition(0, 1);
+                    _lcd.Write("Duration = " + targetDuration);
                 }
                 Thread.Sleep(250);
             }
+            // ReSharper disable once FunctionNeverReturns
         }
 
-        private double GetNormalizedPedalPosition()
+        private int GetRawPedalPosition()
         {
-            var normalized = _pedal.ReadRaw()/1024.0;
+            return _pedal.ReadRaw();
+        }
+
+        private double GetNormalizedPedalPosition(int rawPos)
+        {
+            var normalized = rawPos/1024.0;
             return normalized;
         }
 
-        private double GetGammaPedalPosition()
+        private double GetGammaPedalPosition(int rawPos)
         {
-            var normalized = GetNormalizedPedalPosition();
+            var normalized = GetNormalizedPedalPosition(rawPos);
             var gammaAdjusted = Math.Pow(normalized, GAMMA_EXPONENT);
             return gammaAdjusted;
         }
