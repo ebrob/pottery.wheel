@@ -86,17 +86,20 @@ namespace PotteryWheel
             var duration = SLOWEST_DURATION;
             _led.Write(true);
 
+            _lcd.Clear();
+            _lcd.Home();
+            _lcd.Write("Raw   Dur   RPM");
+            //          0123456789012345
+
             while (true)
             {
                 var rawPosition = GetRawPedalPosition();
                 if (rawPosition < PEDAL_DEAD_ZONE)
                 {
                     SetPulse(0);
-                    _lcd.Clear();
-                    _lcd.Home();
-                    _lcd.Write("Raw = " + rawPosition);
                     _lcd.SetCursorPosition(0, 1);
-                    _lcd.Write("Dead zone");
+                    _lcd.Write("* Dead zone *   ");
+                    //          0123456789012345
                     Thread.Sleep(125);
                     continue;
                 }
@@ -108,15 +111,43 @@ namespace PotteryWheel
                     duration = targetDuration;
                     SetPulse(duration);
 
-                    _lcd.Clear();
-                    _lcd.Home();
-                    _lcd.Write("Raw = " + rawPosition);
                     _lcd.SetCursorPosition(0, 1);
                     _lcd.Write("Duration = " + targetDuration);
+
+                    var textPos = PadInteger4(rawPosition);
+                    var textDuration = PadInteger5((int) targetDuration);
+                    var textRpm = PadInteger4(0);
+                    var finalText = textPos + " " + textDuration + " " + textRpm;
+                    _lcd.SetCursorPosition(0, 1);
+                    _lcd.Write(finalText);
                 }
                 Thread.Sleep(125);
             }
             // ReSharper disable once FunctionNeverReturns
+        }
+
+        private static string PadInteger4(int value)
+        {
+            if (value < 10)
+                return "   " + value;
+            if (value < 100)
+                return "  " + value;
+            if (value < 1000)
+                return " " + value;
+            return value.ToString();
+        }
+
+        private static string PadInteger5(int value)
+        {
+            if (value < 10)
+                return "    " + value;
+            if (value < 100)
+                return "   " + value;
+            if (value < 1000)
+                return "  " + value;
+            if (value < 10000)
+                return " " + value;
+            return value.ToString();
         }
 
         private void SetPulse(uint duration)
