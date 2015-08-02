@@ -10,12 +10,16 @@ namespace PotteryWheel
 {
     public class Wheel
     {
-        private const uint WHY_THE_HECK_DIVIDE_BY_THIS = 2;
-        private const uint MIN_DURATION = 0;
-        private const uint MAX_DURATION = 43350; // 85% of 51 msec
-        private const uint RANGE_DURATION = MAX_DURATION - MIN_DURATION;
+        private const uint WHY_THE_HECK_DIVIDE_BY_THIS = 1;
+        private const uint ABSOLUTE_MAX_DURATION = 43350; // 85% of 51 msec
         private const uint PWM_PERIOD = (51*1000); // 51 milliseconds
-        private const double GAMMA_EXPONENT = 2.0;
+        private const double GAMMA_EXPONENT = 1.0;
+
+        private const uint SLOWEST_DURATION = 4000;
+        private const uint FASTEST_DURATION = 20000;
+        private const uint RANGE_DURATION = FASTEST_DURATION - SLOWEST_DURATION;
+
+        private const uint PEDAL_DEAD_ZONE = 50;
 
         private readonly OutputPort _led;
         private readonly AnalogInput _pedal;
@@ -62,8 +66,7 @@ namespace PotteryWheel
             while (true)
             {
                 var rawPosition = GetRawPedalPosition();
-                var pedalPosition = GetNormalizedPedalPosition(rawPosition);
-                if (pedalPosition < 0.01)
+                if (rawPosition < PEDAL_DEAD_ZONE)
                     return;
 
                 // Blink twice quickly
@@ -80,18 +83,30 @@ namespace PotteryWheel
 
         public void Run()
         {
-            var duration = MIN_DURATION;
+            var duration = SLOWEST_DURATION;
             _led.Write(true);
 
             while (true)
             {
                 var rawPosition = GetRawPedalPosition();
+                if (rawPosition < PEDAL_DEAD_ZONE)
+                {
+                    SetPulse(0);
+                    _lcd.Clear();
+                    _lcd.Home();
+                    _lcd.Write("Raw = " + rawPosition);
+                    _lcd.SetCursorPosition(0, 1);
+                    _lcd.Write("Dead zone");
+                    Thread.Sleep(125);
+                    continue;
+                }
+
                 var pedalPosition = GetGammaPedalPosition(rawPosition);
-                var targetDuration = (uint) (pedalPosition*RANGE_DURATION) + MIN_DURATION;
+                var targetDuration = (uint) (pedalPosition*RANGE_DURATION) + SLOWEST_DURATION;
                 if (duration != targetDuration)
                 {
                     duration = targetDuration;
-                    _motorSpeed.SetPulse(PWM_PERIOD/WHY_THE_HECK_DIVIDE_BY_THIS, duration/WHY_THE_HECK_DIVIDE_BY_THIS);
+                    SetPulse(duration);
 
                     _lcd.Clear();
                     _lcd.Home();
@@ -99,9 +114,21 @@ namespace PotteryWheel
                     _lcd.SetCursorPosition(0, 1);
                     _lcd.Write("Duration = " + targetDuration);
                 }
-                Thread.Sleep(250);
+                Thread.Sleep(125);
             }
             // ReSharper disable once FunctionNeverReturns
+        }
+
+        private void SetPulse(uint duration)
+        {
+            const uint wthPeriod = PWM_PERIOD/WHY_THE_HECK_DIVIDE_BY_THIS;
+            const uint wthAbsoluteMax = ABSOLUTE_MAX_DURATION/WHY_THE_HECK_DIVIDE_BY_THIS;
+
+            var wthDuration = duration/WHY_THE_HECK_DIVIDE_BY_THIS;
+            if (wthDuration > wthAbsoluteMax)
+                wthDuration = wthAbsoluteMax;
+
+            _motorSpeed.SetPulse(wthPeriod, wthDuration);
         }
 
         private int GetRawPedalPosition()
@@ -118,7 +145,10 @@ namespace PotteryWheel
 
         private static double GetNormalizedPedalPosition(int rawPos)
         {
-            var normalized = rawPos/1024.0;
+            var adjustedPos = (double) (rawPos - PEDAL_DEAD_ZONE);
+            const double adjustedMax = (double) (1024 - PEDAL_DEAD_ZONE);
+
+            var normalized = adjustedPos/adjustedMax;
             return normalized;
         }
     }
