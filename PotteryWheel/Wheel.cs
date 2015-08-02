@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using MicroLiquidCrystal;
 using MicroLiquidCrystal.MicroLiquidCrystal;
@@ -21,16 +22,28 @@ namespace PotteryWheel
 
         private const uint PEDAL_DEAD_ZONE = 50;
 
+        private const long TICKS_PER_MINUTE = 600000000;
+        private const long DEBOUNCE_TICKS = 500000;
+
         private readonly OutputPort _led;
         private readonly AnalogInput _pedal;
         private readonly SLPWM _motorSpeed;
         private readonly Lcd _lcd;
+        private readonly InterruptPort _tach;
+
+        private long _previousTachTicks;
+        private int _rpm;
 
         public Wheel()
         {
             _led = new OutputPort(Pins.ONBOARD_LED, false);
             _pedal = new AnalogInput(AnalogChannels.ANALOG_PIN_A0);
             _motorSpeed = new SLPWM(Pins.GPIO_PIN_D5);
+
+            _tach = new InterruptPort(Pins.GPIO_PIN_D4, false, Port.ResistorMode.Disabled,
+                Port.InterruptMode.InterruptEdgeLow);
+            _tach.OnInterrupt += OnTachHit;
+            _previousTachTicks = DateTime.Now.Ticks;
 
             var lcdProvider = new GpioLcdTransferProvider(
                 Pins.GPIO_PIN_D7, // RS
@@ -88,7 +101,7 @@ namespace PotteryWheel
 
             _lcd.Clear();
             _lcd.Home();
-            _lcd.Write("Raw   Dur   RPM");
+            _lcd.Write(" Raw   Dur  RPM");
             //          0123456789012345
 
             while (true)
@@ -116,8 +129,8 @@ namespace PotteryWheel
 
                     var textPos = PadInteger4(rawPosition);
                     var textDuration = PadInteger5((int) targetDuration);
-                    var textRpm = PadInteger4(0);
-                    var finalText = textPos + " " + textDuration + " " + textRpm;
+                    var textRpm = PadInteger4(_rpm);
+                    var finalText = textPos + " " + textDuration + " " + textRpm + " ";
                     _lcd.SetCursorPosition(0, 1);
                     _lcd.Write(finalText);
                 }
@@ -181,6 +194,27 @@ namespace PotteryWheel
 
             var normalized = adjustedPos/adjustedMax;
             return normalized;
+        }
+
+        private void OnTachHit(uint port, uint data, DateTime time)
+        {
+            var oldTicks = _previousTachTicks;
+            var newTicks = time.Ticks;
+            var ticksBetween = newTicks - oldTicks;
+
+            if (ticksBetween < DEBOUNCE_TICKS)
+                return;
+
+            //var rpm = (double) TICKS_PER_MINUTE/(double) ticksBetween;
+            //_rpm = (int)rpm;
+
+            _rpm = (int) (TICKS_PER_MINUTE/ticksBetween);
+
+            // Calculate RPM based on last/current times
+            // One tick equals 100 nanoseconds
+
+            // Keep going
+            _previousTachTicks = newTicks;
         }
     }
 }
