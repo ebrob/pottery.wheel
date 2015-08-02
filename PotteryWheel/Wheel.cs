@@ -10,10 +10,11 @@ namespace PotteryWheel
 {
     public class Wheel
     {
+        private const uint WHY_THE_HECK_DIVIDE_BY_THIS = 2;
         private const uint MIN_DURATION = 0;
         private const uint MAX_DURATION = 43350; // 85% of 51 msec
         private const uint RANGE_DURATION = MAX_DURATION - MIN_DURATION;
-        private const uint PWM_PERIOD = 51*1000; // 51 milliseconds
+        private const uint PWM_PERIOD = (51*1000); // 51 milliseconds
         private const double GAMMA_EXPONENT = 2.0;
 
         private readonly OutputPort _led;
@@ -90,7 +91,7 @@ namespace PotteryWheel
                 if (duration != targetDuration)
                 {
                     duration = targetDuration;
-                    _motorSpeed.SetPulse(PWM_PERIOD, duration);
+                    _motorSpeed.SetPulse(PWM_PERIOD/WHY_THE_HECK_DIVIDE_BY_THIS, duration/WHY_THE_HECK_DIVIDE_BY_THIS);
 
                     _lcd.Clear();
                     _lcd.Home();
