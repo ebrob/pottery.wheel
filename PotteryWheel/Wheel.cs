@@ -65,10 +65,7 @@ namespace PotteryWheel
         public void Run()
         {
             _led.Write(true);
-
             _charDisplay.StartRunMode();
-
-            uint previousDuration = 0;
 
             while (true)
             {
@@ -80,20 +77,15 @@ namespace PotteryWheel
                     continue;
                 }
 
-                var adjustedPosition = _pedal.GetAdjustedPosition();
                 var targetRpm = _pedal.GetTargetRpm();
 
                 _speedFeedback.SetCurrentState(_tach.Rpm);
-                _speedFeedback.SetPedalPosition(adjustedPosition, targetRpm);
-                
+                _speedFeedback.SetPedalPosition(targetRpm);
+
                 _speedFeedback.Recalculate();
                 var targetDuration = _speedFeedback.Duration;
-                if (previousDuration != targetDuration)
-                {
-                    _motorSpeed.SetPulse(targetDuration);
-                    _charDisplay.DisplayRunStats(_tach.Rpm, targetRpm, targetDuration);
-                    previousDuration = targetDuration;
-                }
+                _motorSpeed.SetPulse(targetDuration);
+                _charDisplay.DisplayRunStats(_tach.Rpm, targetRpm, targetDuration);
                 Thread.Sleep(125);
             }
             // ReSharper disable once FunctionNeverReturns
