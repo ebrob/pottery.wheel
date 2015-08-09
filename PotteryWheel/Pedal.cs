@@ -40,7 +40,7 @@ namespace PotteryWheel
             var raw = GetRawPosition();
             var gamma = GetGammaPedalPosition(raw);
             var rpmRange = SpeedFeedback.MaxRpm - SpeedFeedback.MinRpm;
-            return gamma*rpmRange;
+            return (gamma*rpmRange) + SpeedFeedback.MinRpm;
         }
 
         private static double GetGammaPedalPosition(int rawPos)

@@ -85,7 +85,8 @@ namespace PotteryWheel
 
                 _speedFeedback.SetCurrentState(_tach.Rpm);
                 _speedFeedback.SetPedalPosition(adjustedPosition, targetRpm);
-
+                
+                _speedFeedback.Recalculate();
                 var targetDuration = _speedFeedback.Duration;
                 if (previousDuration != targetDuration)
                 {
