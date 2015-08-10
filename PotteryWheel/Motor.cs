@@ -6,7 +6,7 @@ namespace PotteryWheel
     public class Motor
     {
         private readonly PWM _pwm;
-        private const uint WHY_THE_HECK_DIVIDE_BY_THIS = 2; // 1 = Netduino A / 2 = Netduino B
+        private const uint WHY_THE_HECK_DIVIDE_BY_THIS = 1; // 1 = Netduino A / 2 = Netduino B
         private const uint ABSOLUTE_MAX_DURATION = 43350; // 85% of 51 msec
         private const uint PWM_PERIOD = (51*1000); // 51 milliseconds
 
